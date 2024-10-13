@@ -3177,8 +3177,17 @@ class Tool {
     }
 
     handleToolDown() {
-        if (this.name !== 'camera' && !xformer.isActive) {
+        if (this.name !== 'camera') {
             this.setPickInfo(pick => {
+                if (xformer.isActive) {
+                    if (ui.domTransformReactive.checked) {
+                        xformer.apply();
+                        pointer.isDown = false;
+                        scene.stopAnimation(camera.camera0);
+                        scene.activeCamera.detachControl(canvas);
+                    }
+                    return;
+                }
                 scene.stopAnimation(camera.camera0);
                 scene.activeCamera.detachControl(canvas);
                 this.onToolDown(pick);
@@ -3297,7 +3306,7 @@ class Tool {
         for (let i = 0; i < elems.length; i++)
             elems[i].classList.add("tool_selector");
 
-        if (finishTransforms)
+        if (xformer.isActive && finishTransforms)
             xformer.apply();
 
         if (bvhWhiteList.includes(this.name) && !modules.rc.mesh)
@@ -3365,7 +3374,7 @@ class Project {
 
     serializeScene(voxels) {
         const json = {
-            version: "Voxel Builder 4.5.3",
+            version: "Voxel Builder 4.5.4",
             project: {
                 name: "name",
                 voxels: builder.voxels.length
@@ -3939,7 +3948,7 @@ class UserInterface {
         this.domCameraAutoRotation = document.getElementById('input-autorotate');
         this.domCameraAutoRotationCCW = document.getElementById('input-autorotate-ccw');
         this.domCameraOrtho = document.getElementById('btn-ortho');
-        //this.domTransformReactive = document.getElementById('input-transform-reactive');
+        this.domTransformReactive = document.getElementById('input-transform-reactive');
         this.domTransformClone = document.getElementById('input-transform-clone');
         this.domVoxelizerScale = document.getElementById('input-voxelizer-scale');
         this.domVoxelizerRatio = document.getElementById('input-voxelizer-ratio');
@@ -4173,6 +4182,7 @@ class UserInterface {
             if (isMobile) {
                 this.domCameraAutoFrame.checked = true;
                 this.domCameraOffset.value = 1.2;
+                this.domTransformReactive.checked = false;
             }
         }
     }
@@ -4669,7 +4679,8 @@ document.addEventListener("keydown", (ev) => {
     switch (ev.key.toLowerCase()) {
         case 'enter':
             if (ev.target instanceof HTMLButtonElement) return;
-            xformer.apply();
+            if (xformer.isActive)
+                xformer.apply();
             break;
         case '`':
             tool.toolSelector('camera', true);
@@ -4731,12 +4742,14 @@ document.addEventListener("keydown", (ev) => {
     if (MODE == 0) {
         if (ev.ctrlKey && ev.key.toLowerCase() === 'z') {
             ev.preventDefault();
-            xformer.apply();
+            if (xformer.isActive)
+                xformer.apply();
             memory.undo();
         }
         if (ev.ctrlKey && ev.key.toLowerCase() === 'x') {
             ev.preventDefault();
-            xformer.apply();
+            if (xformer.isActive)
+                xformer.apply();
             memory.redo();
         }
     }
@@ -4933,18 +4946,21 @@ ui.domMenuInScreenRender.children[2].onclick = () => {
 
 ui.domMenus.onpointerdown = () => {
     if (MODE == 0) {
-        xformer.apply();
+        if (xformer.isActive)
+            xformer.apply();
         helper.clearOverlays();
     }
 };
 
 ui.domMenuInScreenStore.onpointerdown = () => {
-    xformer.apply();
+    if (xformer.isActive)
+        xformer.apply();
     helper.clearOverlays();
 };
 
 ui.domHover.onpointerdown = () => {
-    xformer.apply();
+    if (xformer.isActive)
+        xformer.apply();
     helper.clearOverlays();
 };
 
